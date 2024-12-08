@@ -57,12 +57,15 @@ fn part1(grid: &[Vec<char>], start_pos: (usize, usize)) -> usize {
 }
 
 fn part2(grid: &[Vec<char>], start_pos: (usize, usize)) -> usize {
-    fn evaluate_grid(grid: &[Vec<char>], start_pos: (usize, usize)) -> bool {
-        let mut visited = HashSet::new();
+    fn evaluate_position(
+        grid: &[Vec<char>],
+        start_pos: (usize, usize),
+        block_pos: (usize, usize),
+    ) -> bool {
         let mut dir_idx = 0;
         let mut pos = start_pos;
-
-        visited.insert((pos, dir_idx));
+        let mut visited = vec![vec![[false; 4]; grid[0].len()]; grid.len()];
+        visited[pos.0][pos.1][dir_idx] = true;
 
         loop {
             let (di, dj) = DIRECTIONS[dir_idx];
@@ -76,16 +79,16 @@ fn part2(grid: &[Vec<char>], start_pos: (usize, usize)) -> usize {
                 return false;
             }
 
-            if grid[new_pos.0 as usize][new_pos.1 as usize] == '#' {
+            let new_pos = (new_pos.0 as usize, new_pos.1 as usize);
+
+            if new_pos == block_pos || grid[new_pos.0][new_pos.1] == '#' {
                 dir_idx = (dir_idx + 1) % DIRECTIONS.len();
             } else {
-                pos = (new_pos.0 as usize, new_pos.1 as usize);
-
-                if visited.contains(&(pos, dir_idx)) {
+                pos = new_pos;
+                if visited[pos.0][pos.1][dir_idx] {
                     return true;
                 }
-
-                visited.insert((pos, dir_idx));
+                visited[pos.0][pos.1][dir_idx] = true;
             }
         }
     }
@@ -94,10 +97,11 @@ fn part2(grid: &[Vec<char>], start_pos: (usize, usize)) -> usize {
 
     for i in 0..grid.len() {
         for j in 0..grid[0].len() {
-            let mut copy: Vec<Vec<char>> = grid.iter().map(|row| row.to_vec()).collect();
-            copy[i][j] = '#';
+            if grid[i][j] == '#' || (i, j) == start_pos {
+                continue;
+            }
 
-            if evaluate_grid(&copy, start_pos) {
+            if evaluate_position(grid, start_pos, (i, j)) {
                 count += 1;
             }
         }
