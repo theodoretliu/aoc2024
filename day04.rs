@@ -16,77 +16,66 @@ fn main() {
     println!("{:?}", part2(&grid));
 }
 
+fn check_pattern(
+    grid: &[Vec<char>],
+    i: usize,
+    j: usize,
+    offsets: &[(i32, i32)],
+    pattern: &[char],
+) -> bool {
+    pattern.iter().enumerate().all(|(k, &c)| {
+        let (di, dj) = offsets[k];
+        let new_i = (i as i32 + di) as usize;
+        let new_j = (j as i32 + dj) as usize;
+        grid.get(new_i)
+            .and_then(|row| row.get(new_j))
+            .map_or(false, |&cell| cell == c)
+    })
+}
+
 fn part1(grid: &Vec<Vec<char>>) -> i32 {
     let mut count = 0;
+    let patterns = [
+        (
+            vec!['X', 'M', 'A', 'S'],
+            vec![(0, 0), (0, 1), (0, 2), (0, 3)],
+        ), // Horizontal
+        (
+            vec!['S', 'A', 'M', 'X'],
+            vec![(0, 0), (0, 1), (0, 2), (0, 3)],
+        ),
+        (
+            vec!['X', 'M', 'A', 'S'],
+            vec![(0, 0), (1, 0), (2, 0), (3, 0)],
+        ), // Vertical
+        (
+            vec!['S', 'A', 'M', 'X'],
+            vec![(0, 0), (1, 0), (2, 0), (3, 0)],
+        ),
+        (
+            vec!['X', 'M', 'A', 'S'],
+            vec![(0, 0), (1, 1), (2, 2), (3, 3)],
+        ), // Diagonal
+        (
+            vec!['S', 'A', 'M', 'X'],
+            vec![(0, 0), (1, 1), (2, 2), (3, 3)],
+        ),
+        (
+            vec!['X', 'M', 'A', 'S'],
+            vec![(0, 3), (1, 2), (2, 1), (3, 0)],
+        ), // Anti-diagonal
+        (
+            vec!['S', 'A', 'M', 'X'],
+            vec![(0, 3), (1, 2), (2, 1), (3, 0)],
+        ),
+    ];
 
     for i in 0..grid.len() {
-        for j in 0..grid[i].len() - 3 {
-            if grid[i][j] == 'X'
-                && grid[i][j + 1] == 'M'
-                && grid[i][j + 2] == 'A'
-                && grid[i][j + 3] == 'S'
-            {
-                count += 1;
-            } else if grid[i][j] == 'S'
-                && grid[i][j + 1] == 'A'
-                && grid[i][j + 2] == 'M'
-                && grid[i][j + 3] == 'X'
-            {
-                count += 1;
-            }
-        }
-    }
-
-    for i in 0..grid.len() - 3 {
         for j in 0..grid[i].len() {
-            if grid[i][j] == 'X'
-                && grid[i + 1][j] == 'M'
-                && grid[i + 2][j] == 'A'
-                && grid[i + 3][j] == 'S'
-            {
-                count += 1;
-            } else if grid[i][j] == 'S'
-                && grid[i + 1][j] == 'A'
-                && grid[i + 2][j] == 'M'
-                && grid[i + 3][j] == 'X'
-            {
-                count += 1;
-            }
-        }
-    }
-
-    for i in 0..grid.len() - 3 {
-        for j in 0..grid[i].len() - 3 {
-            if grid[i][j] == 'X'
-                && grid[i + 1][j + 1] == 'M'
-                && grid[i + 2][j + 2] == 'A'
-                && grid[i + 3][j + 3] == 'S'
-            {
-                count += 1;
-            } else if grid[i][j] == 'S'
-                && grid[i + 1][j + 1] == 'A'
-                && grid[i + 2][j + 2] == 'M'
-                && grid[i + 3][j + 3] == 'X'
-            {
-                count += 1;
-            }
-        }
-    }
-
-    for i in 0..grid.len() - 3 {
-        for j in 0..grid[i].len() - 3 {
-            if grid[i][j + 3] == 'X'
-                && grid[i + 1][j + 2] == 'M'
-                && grid[i + 2][j + 1] == 'A'
-                && grid[i + 3][j] == 'S'
-            {
-                count += 1;
-            } else if grid[i][j + 3] == 'S'
-                && grid[i + 1][j + 2] == 'A'
-                && grid[i + 2][j + 1] == 'M'
-                && grid[i + 3][j] == 'X'
-            {
-                count += 1;
+            for (pattern, offsets) in &patterns {
+                if check_pattern(grid, i, j, offsets, pattern) {
+                    count += 1;
+                }
             }
         }
     }
@@ -97,26 +86,20 @@ fn part1(grid: &Vec<Vec<char>>) -> i32 {
 fn part2(grid: &Vec<Vec<char>>) -> i32 {
     let mut count = 0;
 
-    for i in 0..grid.len() - 2 {
-        for j in 0..grid[i].len() - 2 {
+    for i in 0..grid.len().saturating_sub(2) {
+        for j in 0..grid[i].len().saturating_sub(2) {
             if grid[i + 1][j + 1] == 'A' {
-                // Check corners in clockwise order starting from top-left
                 let corners = [
-                    grid[i][j],
-                    grid[i][j + 2], // Top corners
-                    grid[i + 2][j],
-                    grid[i + 2][j + 2], // Bottom corners
+                    grid[i][j],         // Top-left
+                    grid[i][j + 2],     // Top-right
+                    grid[i + 2][j],     // Bottom-left
+                    grid[i + 2][j + 2], // Bottom-right
                 ];
 
-                // Check if we have 2 'M's and 2 'S's in corners
-                let m_count = corners.iter().filter(|&&a| a == 'M').count();
-                let s_count = corners.iter().filter(|&&a| a == 'S').count();
+                let m_count = corners.iter().filter(|&&c| c == 'M').count();
+                let s_count = corners.iter().filter(|&&c| c == 'S').count();
 
-                if m_count == 2 && s_count == 2 {
-                    // Check if the Ms and Ss are adjacent
-                    if (corners[0] == corners[3]) {
-                        continue; // Ms or Ss are on same side, not adjacent
-                    }
+                if m_count == 2 && s_count == 2 && corners[0] != corners[3] {
                     count += 1;
                 }
             }
