@@ -8,6 +8,7 @@ enum Entry {
 }
 
 fn main() {
+    // Read input line and convert to digits
     let stdin = io::stdin();
     let mut line = String::new();
     stdin.lock().read_line(&mut line).unwrap();
@@ -22,166 +23,155 @@ fn main() {
 }
 
 fn part1(digits: &[u32]) {
-    // Create blocks of Some(block_id) alternating with None values based on input digits
+    // Initialize file system with blocks and gaps
     let mut file_system = Vec::new();
     let mut block_id = 0;
 
     for (i, &digit) in digits.iter().enumerate() {
-        let entries = if i % 2 == 0 {
-            // Even indices: create Some(block_id) entries and increment block counter
-            let entries = vec![Some(block_id); digit as usize];
+        let count = digit as usize;
+        if i % 2 == 0 {
+            // Add block entries
+            for _ in 0..count {
+                file_system.push(Some(block_id));
+            }
             block_id += 1;
-            entries
         } else {
-            // Odd indices: create None entries
-            vec![None; digit as usize]
-        };
-        file_system.extend(entries);
+            // Add gap entries
+            for _ in 0..count {
+                file_system.push(None);
+            }
+        }
     }
 
-    // Move blocks to fill gaps (None values) from left to right
-    let mut first_gap = file_system.iter().position(|x| x.is_none()).unwrap();
-    let mut last_block = file_system.len() - 1;
+    // Move blocks left to fill gaps
+    let mut gap_pos = 0;
+    let mut block_pos = file_system.len() - 1;
 
-    while first_gap <= last_block {
-        // Move block from right to fill gap on left
-        file_system[first_gap] = file_system[last_block];
-        file_system[last_block] = None;
-
+    while gap_pos < block_pos {
         // Find next gap
-        first_gap = match file_system[first_gap + 1..]
-            .iter()
-            .position(|x| x.is_none())
-        {
-            Some(pos) => first_gap + 1 + pos,
-            None => break,
-        };
+        while gap_pos < file_system.len() && file_system[gap_pos].is_some() {
+            gap_pos += 1;
+        }
+        if gap_pos >= block_pos {
+            break;
+        }
 
         // Find next block from right
-        last_block = match file_system[..last_block].iter().rposition(|x| x.is_some()) {
-            Some(pos) => pos,
-            None => break,
-        };
+        while block_pos > gap_pos && file_system[block_pos].is_none() {
+            block_pos -= 1;
+        }
+        if block_pos <= gap_pos {
+            break;
+        }
+
+        // Move block to gap
+        file_system[gap_pos] = file_system[block_pos];
+        file_system[block_pos] = None;
     }
 
-    // Calculate sum of (index * block_id) for all filled positions
-    let sum: u64 = file_system
-        .iter()
-        .take_while(|x| x.is_some())
-        .enumerate()
-        .map(|(i, &x)| i as u64 * x.unwrap() as u64)
-        .sum();
+    // Calculate score
+    let mut sum = 0;
+    for (pos, block) in file_system.iter().enumerate() {
+        if let Some(id) = block {
+            sum += pos as u64 * *id as u64;
+        }
+    }
 
     println!("{}", sum);
 }
 
 fn part2(digits: &[u32]) {
+    // Initialize file system with blocks and gaps
     let mut file_system = Vec::new();
     let mut block_id = 0;
+    let mut is_block = true;
 
-    let mut block = true;
-
-    let mut block_map = HashMap::new();
-
-    let mut max_block_id = 0;
-
-    for (i, &digit) in digits.iter().enumerate() {
-        if block {
-            block_map.insert(block_id, i);
-
-            if block_id > max_block_id {
-                max_block_id = block_id;
-            }
-
-            file_system.push(Entry::Block {
-                id: block_id,
-                size: digit as usize,
-            });
+    // Build initial file system
+    for &digit in digits {
+        let size = digit as usize;
+        if is_block {
+            file_system.push(Entry::Block { id: block_id, size });
             block_id += 1;
         } else {
-            file_system.push(Entry::Gap {
-                size: digit as usize,
-            });
+            file_system.push(Entry::Gap { size });
         }
-        block = !block;
+        is_block = !is_block;
     }
 
-    // println!("{:?}", file_system);
-
-    for i in (0..=max_block_id).rev() {
-        // println!("i: {}", i);
-        // println!("{:?}", file_system);
-        let (
-            block_idx,
-            Entry::Block {
-                id: _,
-                size: block_size,
-            },
-        ) = file_system
+    // Process blocks from right to left
+    for current_id in (0..block_id).rev() {
+        // Find current block
+        let block_pos = file_system
             .iter()
-            .enumerate()
-            .find(|(_, x)| match x {
-                Entry::Block { id, .. } => *id == i,
-                _ => false,
-            })
-            .unwrap()
-        else {
-            panic!("Expected block with id {}", i);
+            .position(|entry| matches!(entry, Entry::Block { id, .. } if *id == current_id))
+            .unwrap();
+
+        let block_size = match file_system[block_pos] {
+            Entry::Block { size, .. } => size,
+            _ => unreachable!(),
         };
 
-        let final_size = *block_size;
-
-        let first_gap = file_system.iter().take(block_idx).position(|x| match x {
-            Entry::Gap { size } => *size >= final_size,
-            _ => false,
-        });
-
-        match first_gap {
-            Some(pos) => {
-                let existing_gap = match file_system[pos] {
-                    Entry::Gap { size } => size,
-                    _ => panic!("Expected gap at position {}", pos),
-                };
-
-                let new_gap_size = existing_gap - final_size;
-
-                file_system[block_idx] = Entry::Gap { size: final_size };
-                file_system.remove(pos);
-                if new_gap_size > 0 {
-                    file_system.insert(pos, Entry::Gap { size: new_gap_size });
+        // Find leftmost gap that can fit this block
+        let mut gap_pos = None;
+        for (pos, entry) in file_system[..block_pos].iter().enumerate() {
+            if let Entry::Gap { size } = entry {
+                if *size >= block_size {
+                    gap_pos = Some(pos);
+                    break;
                 }
+            }
+        }
 
+        if let Some(pos) = gap_pos {
+            // Get gap size
+            let gap_size = match file_system[pos] {
+                Entry::Gap { size } => size,
+                _ => unreachable!(),
+            };
+
+            // Remove original block and replace with gap
+            file_system[block_pos] = Entry::Gap { size: block_size };
+
+            // Update gap
+            file_system.remove(pos);
+            let remaining_size = gap_size - block_size;
+            if remaining_size > 0 {
                 file_system.insert(
                     pos,
-                    Entry::Block {
-                        id: i,
-                        size: final_size,
+                    Entry::Gap {
+                        size: remaining_size,
                     },
                 );
             }
-            None => {
-                file_system.push(Entry::Gap { size: final_size });
-            }
+
+            // Insert block in new position
+            file_system.insert(
+                pos,
+                Entry::Block {
+                    id: current_id,
+                    size: block_size,
+                },
+            );
         }
     }
 
+    // Calculate score
     let mut sum = 0;
-    let mut actual_idx = 0;
-    for (i, &ref entry) in file_system.iter().enumerate() {
+    let mut current_pos = 0;
+
+    for entry in &file_system {
         match entry {
             Entry::Block { id, size } => {
-                for x in 0..*size {
-                    sum += (actual_idx + x as u64) * id;
+                for offset in 0..*size {
+                    sum += (current_pos + offset as u64) * id;
                 }
-                actual_idx += *size as u64;
+                current_pos += *size as u64;
             }
             Entry::Gap { size } => {
-                actual_idx += *size as u64;
+                current_pos += *size as u64;
             }
         }
     }
-
-    println!("{:?}", file_system);
 
     println!("{}", sum);
 }
