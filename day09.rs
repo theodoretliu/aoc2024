@@ -13,66 +13,56 @@ fn main() {
     part1(&digits);
 }
 
-fn part1(digits: &Vec<u32>) {
+fn part1(digits: &[u32]) {
+    // Create blocks of Some(block_id) alternating with None values based on input digits
     let mut file_system = Vec::new();
+    let mut block_id = 0;
 
-    let mut block = true;
-    let mut block_count = 0;
-
-    for digit in digits {
-        if block {
-            for i in 0..*digit {
-                file_system.push(Some(block_count));
-            }
-
-            block_count += 1;
-            block = false;
+    for (i, &digit) in digits.iter().enumerate() {
+        let entries = if i % 2 == 0 {
+            // Even indices: create Some(block_id) entries and increment block counter
+            let entries = vec![Some(block_id); digit as usize];
+            block_id += 1;
+            entries
         } else {
-            for i in 0..*digit {
-                file_system.push(None);
-            }
-            block = true;
-        }
+            // Odd indices: create None entries
+            vec![None; digit as usize]
+        };
+        file_system.extend(entries);
     }
 
-    // println!("{:?}", file_system);
+    // Move blocks to fill gaps (None values) from left to right
+    let mut first_gap = file_system.iter().position(|x| x.is_none()).unwrap();
+    let mut last_block = file_system.len() - 1;
 
-    let mut first_none = file_system.iter().position(|x| x.is_none()).unwrap();
+    while first_gap <= last_block {
+        // Move block from right to fill gap on left
+        file_system[first_gap] = file_system[last_block];
+        file_system[last_block] = None;
 
-    let mut idx = file_system.len() - 1;
+        // Find next gap
+        first_gap = match file_system[first_gap + 1..]
+            .iter()
+            .position(|x| x.is_none())
+        {
+            Some(pos) => first_gap + 1 + pos,
+            None => break,
+        };
 
-    while first_none <= idx {
-        assert!(file_system[first_none].is_none());
-        assert!(file_system[idx].is_some());
-
-        file_system[first_none] = Some(file_system[idx].unwrap());
-        file_system[idx] = None;
-
-        while first_none < file_system.len() && file_system[first_none].is_some() {
-            first_none += 1;
-        }
-
-        while idx > 0 && file_system[idx].is_none() {
-            idx -= 1;
-        }
+        // Find next block from right
+        last_block = match file_system[..last_block].iter().rposition(|x| x.is_some()) {
+            Some(pos) => pos,
+            None => break,
+        };
     }
 
-    let mut find_first_none = file_system.iter().position(|x| x.is_none()).unwrap();
-
-    for i in find_first_none..file_system.len() {
-        assert!(file_system[i].is_none());
-    }
-
-    // println!("{:?}", file_system);
-    let mut sum = 0;
-
-    for i in 0..file_system.len() {
-        if file_system[i].is_some() {
-            sum += i as u64 * file_system[i].unwrap();
-        } else {
-            break;
-        }
-    }
+    // Calculate sum of (index * block_id) for all filled positions
+    let sum: u64 = file_system
+        .iter()
+        .take_while(|x| x.is_some())
+        .enumerate()
+        .map(|(i, &x)| i as u64 * x.unwrap() as u64)
+        .sum();
 
     println!("{}", sum);
 }
