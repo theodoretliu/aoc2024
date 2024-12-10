@@ -1,27 +1,47 @@
+use std::collections::HashSet;
 use std::io::{self, BufRead};
 
-use std::collections::HashSet;
+// Common direction checking logic used by both parts
+fn get_valid_directions(grid: &[Vec<u32>], i: usize, j: usize) -> Vec<(usize, usize)> {
+    let deltas = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+    let mut directions = Vec::new();
+
+    for (di, dj) in deltas {
+        let new_i = i as i32 + di;
+        let new_j = j as i32 + dj;
+
+        if new_i >= 0 && new_i < grid.len() as i32 && new_j >= 0 && new_j < grid[0].len() as i32 {
+            directions.push((new_i as usize, new_j as usize));
+        }
+    }
+
+    directions
+}
+
 fn main() {
     let stdin = io::stdin();
-    let mut grid: Vec<Vec<u32>> = Vec::new();
+    let mut grid = Vec::new();
 
     for line in stdin.lock().lines() {
         let line = line.unwrap();
-        let row: Vec<u32> = line.chars().map(|c| c.to_digit(10).unwrap()).collect();
+        let mut row = Vec::new();
+        for c in line.chars() {
+            row.push(c.to_digit(10).unwrap());
+        }
         grid.push(row);
     }
 
-    // part1(&grid);
+    part1(&grid);
     part2(&grid);
 }
 
-fn part1(grid: &Vec<Vec<u32>>) {
+fn part1(grid: &[Vec<u32>]) {
     let mut visited = HashSet::new();
-
     let mut sum = 0;
 
-    fn f(
-        grid: &Vec<Vec<u32>>,
+    // Returns set of reachable points from (i,j) that form a path of increasing digits
+    fn traverse_path(
+        grid: &[Vec<u32>],
         i: usize,
         j: usize,
         visited: &mut HashSet<(usize, usize)>,
@@ -35,31 +55,11 @@ fn part1(grid: &Vec<Vec<u32>>) {
         }
 
         visited.insert((i, j));
-
-        let mut directions = Vec::new();
-
-        // Check up
-        if i > 0 {
-            directions.push((i - 1, j));
-        }
-        // Check down
-        if i < grid.len() - 1 {
-            directions.push((i + 1, j));
-        }
-        // Check left
-        if j > 0 {
-            directions.push((i, j - 1));
-        }
-        // Check right
-        if j < grid[0].len() - 1 {
-            directions.push((i, j + 1));
-        }
-
         let mut reachable = HashSet::new();
 
-        for (next_i, next_j) in directions {
+        for (next_i, next_j) in get_valid_directions(grid, i, j) {
             if grid[next_i][next_j] == grid[i][j] + 1 {
-                reachable.extend(f(grid, next_i, next_j, visited));
+                reachable.extend(traverse_path(grid, next_i, next_j, visited));
             }
         }
 
@@ -67,15 +67,12 @@ fn part1(grid: &Vec<Vec<u32>>) {
         reachable
     }
 
+    // Find all paths starting from 0s
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
             if grid[i][j] == 0 {
-                println!("{} {}", i, j);
-                let res = f(grid, i, j, &mut visited);
-                assert!(visited.len() == 0);
-                println!("{}", res.len());
-
-                sum += res.len();
+                let path = traverse_path(grid, i, j, &mut visited);
+                sum += path.len();
             }
         }
     }
@@ -83,12 +80,17 @@ fn part1(grid: &Vec<Vec<u32>>) {
     println!("{}", sum);
 }
 
-fn part2(grid: &Vec<Vec<u32>>) {
+fn part2(grid: &[Vec<u32>]) {
     let mut visited = HashSet::new();
-
     let mut sum = 0;
 
-    fn f(grid: &Vec<Vec<u32>>, i: usize, j: usize, visited: &mut HashSet<(usize, usize)>) -> u64 {
+    // Returns count of reachable points from (i,j) that form a path of increasing digits
+    fn count_path(
+        grid: &[Vec<u32>],
+        i: usize,
+        j: usize,
+        visited: &mut HashSet<(usize, usize)>,
+    ) -> u64 {
         if visited.contains(&(i, j)) {
             return 0;
         }
@@ -98,49 +100,24 @@ fn part2(grid: &Vec<Vec<u32>>) {
         }
 
         visited.insert((i, j));
+        let mut count = 0;
 
-        let mut directions = Vec::new();
-
-        // Check up
-        if i > 0 {
-            directions.push((i - 1, j));
-        }
-        // Check down
-        if i < grid.len() - 1 {
-            directions.push((i + 1, j));
-        }
-        // Check left
-        if j > 0 {
-            directions.push((i, j - 1));
-        }
-        // Check right
-        if j < grid[0].len() - 1 {
-            directions.push((i, j + 1));
-        }
-
-        // let mut reachable = HashSet::new();
-
-        let mut sum = 0;
-
-        for (next_i, next_j) in directions {
+        for (next_i, next_j) in get_valid_directions(grid, i, j) {
             if grid[next_i][next_j] == grid[i][j] + 1 {
-                sum += f(grid, next_i, next_j, visited);
+                count += count_path(grid, next_i, next_j, visited);
             }
         }
 
         visited.remove(&(i, j));
-        sum
+        count
     }
 
+    // Find all paths starting from 0s
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
             if grid[i][j] == 0 {
-                println!("{} {}", i, j);
-                let res = f(grid, i, j, &mut visited);
-                assert!(visited.len() == 0);
-                println!("{}", res);
-
-                sum += res;
+                let path_count = count_path(grid, i, j, &mut visited);
+                sum += path_count;
             }
         }
     }
