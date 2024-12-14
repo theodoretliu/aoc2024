@@ -7,77 +7,46 @@ struct GameData {
     prize: (i64, i64),
 }
 
+fn parse_coordinates(line: &str) -> (i64, i64) {
+    let coords = line.split(": ").nth(1).unwrap();
+    let coords = coords.trim_start_matches("X+").trim_start_matches("X=");
+    let mut parts = coords.split(", Y");
+
+    let x = parts.next().unwrap().parse::<i64>().unwrap();
+    let y = parts
+        .next()
+        .unwrap()
+        .trim_start_matches("+")
+        .trim_start_matches("=")
+        .parse::<i64>()
+        .unwrap();
+
+    (x, y)
+}
+
 fn parse_input() -> Vec<GameData> {
     let mut games = Vec::new();
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
 
-    let mut i = 0;
-
-    let lines: Vec<String> = io::stdin().lock().lines().map(|l| l.unwrap()).collect();
-
-    while i < lines.len() {
-        if lines[i].is_empty() {
-            i += 1;
+    while let Some(Ok(line)) = lines.next() {
+        if line.is_empty() {
             continue;
         }
 
-        // Parse Button A
-        let button_a = &lines[i];
-        let coords: Vec<&str> = button_a
-            .split(": ")
-            .nth(1)
-            .unwrap()
-            .trim_start_matches("X+")
-            .trim_start_matches("X=")
-            .split(", Y")
-            .collect();
-        let x1 = coords[0].parse::<i64>().unwrap();
-        let y1 = coords[1]
-            .trim_start_matches("+")
-            .trim_start_matches("=")
-            .parse::<i64>()
-            .unwrap();
-
-        // Parse Button B
-        let button_b = &lines[i + 1];
-        let coords: Vec<&str> = button_b
-            .split(": ")
-            .nth(1)
-            .unwrap()
-            .trim_start_matches("X+")
-            .trim_start_matches("X=")
-            .split(", Y")
-            .collect();
-        let x2 = coords[0].parse::<i64>().unwrap();
-        let y2 = coords[1]
-            .trim_start_matches("+")
-            .trim_start_matches("=")
-            .parse::<i64>()
-            .unwrap();
-
-        // Parse Prize
-        let prize = &lines[i + 2];
-        let coords: Vec<&str> = prize
-            .split(": ")
-            .nth(1)
-            .unwrap()
-            .trim_start_matches("X+")
-            .trim_start_matches("X=")
-            .split(", Y")
-            .collect();
-        let final_x = coords[0].parse::<i64>().unwrap();
-        let final_y = coords[1]
-            .trim_start_matches("+")
-            .trim_start_matches("=")
-            .parse::<i64>()
-            .unwrap();
+        // Parse three consecutive lines for each game
+        let button_a = parse_coordinates(&line);
+        let button_b = parse_coordinates(&lines.next().unwrap().unwrap());
+        let prize = parse_coordinates(&lines.next().unwrap().unwrap());
 
         games.push(GameData {
-            button_a: (x1, y1),
-            button_b: (x2, y2),
-            prize: (final_x, final_y),
+            button_a,
+            button_b,
+            prize,
         });
 
-        i += 4; // Move to next group (3 lines + empty line)
+        // Skip empty line between games
+        let _ = lines.next();
     }
 
     games
@@ -85,49 +54,54 @@ fn parse_input() -> Vec<GameData> {
 
 fn main() {
     let games = parse_input();
-
     part1(&games);
 
-    let modified_games: Vec<GameData> = games
-        .iter()
-        .map(|g| GameData {
-            button_a: g.button_a,
-            button_b: g.button_b,
-            prize: (g.prize.0 + 10000000000000, g.prize.1 + 10000000000000),
-        })
-        .collect();
+    // Create modified games with offset prize coordinates
+    let mut modified_games = Vec::with_capacity(games.len());
+    let offset = 10000000000000;
+
+    for game in &games {
+        modified_games.push(GameData {
+            button_a: game.button_a,
+            button_b: game.button_b,
+            prize: (game.prize.0 + offset, game.prize.1 + offset),
+        });
+    }
 
     part1(&modified_games);
 }
 
-fn part1(games: &[GameData]) {
-    let mut sum = 0;
-
-    for game in games {
-        let b_denom = game.button_b.0 * game.button_a.1 - game.button_a.0 * game.button_b.1;
-
-        if b_denom == 0 {
-            continue;
-        }
-
-        let b_num = game.prize.0 * game.button_a.1 - game.button_a.0 * game.prize.1;
-
-        if b_num % b_denom != 0 {
-            continue;
-        }
-
-        let b_res = b_num / b_denom;
-
-        let a_num = game.prize.0 - game.button_b.0 * b_res;
-
-        if a_num % game.button_a.0 != 0 {
-            continue;
-        }
-
-        let a_res = a_num / game.button_a.0;
-
-        sum += a_res * 3 + b_res;
+fn solve_game(game: &GameData) -> Option<i64> {
+    // Calculate denominator for b coefficient
+    let b_denom = game.button_b.0 * game.button_a.1 - game.button_a.0 * game.button_b.1;
+    if b_denom == 0 {
+        return None;
     }
 
+    // Calculate numerator and check divisibility
+    let b_num = game.prize.0 * game.button_a.1 - game.button_a.0 * game.prize.1;
+    if b_num % b_denom != 0 {
+        return None;
+    }
+
+    let b_res = b_num / b_denom;
+
+    // Calculate a coefficient
+    let a_num = game.prize.0 - game.button_b.0 * b_res;
+    if a_num % game.button_a.0 != 0 {
+        return None;
+    }
+
+    let a_res = a_num / game.button_a.0;
+    Some(a_res * 3 + b_res)
+}
+
+fn part1(games: &[GameData]) {
+    let mut sum = 0;
+    for game in games {
+        if let Some(result) = solve_game(game) {
+            sum += result;
+        }
+    }
     println!("{}", sum);
 }
