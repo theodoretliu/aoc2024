@@ -1,8 +1,5 @@
 use std::collections::HashSet;
-
 use std::io::{self, BufRead};
-
-
 
 fn main() {
     let lines: Vec<((usize, usize), (i64, i64))> = io::stdin()
@@ -28,7 +25,7 @@ fn main() {
 fn print_grid(grid: &[Vec<HashSet<(i64, i64)>>]) {
     for row in grid {
         for cell in row {
-            if cell.len() > 0 {
+            if !cell.is_empty() {
                 print!("{}", cell.len());
             } else {
                 print!(".");
@@ -39,47 +36,25 @@ fn print_grid(grid: &[Vec<HashSet<(i64, i64)>>]) {
 }
 
 fn create_grid(width: usize, height: usize) -> Vec<Vec<HashSet<(i64, i64)>>> {
-    let mut grid = Vec::new();
-
-    for _i in 0..height {
-        let mut row = Vec::new();
-        for _j in 0..width {
-            row.push(HashSet::<(i64, i64)>::new());
-        }
-        grid.push(row);
-    }
-
-    grid
+    vec![vec![HashSet::new(); width]; height]
 }
 
 fn part1(lines: &[((usize, usize), (i64, i64))]) {
-    let mut grid = Vec::new();
-
     let width = 101;
     let height = 103;
-
     let num_rounds = 100;
 
-    for _i in 0..height {
-        let mut row = Vec::new();
-        for _j in 0..width {
-            row.push(HashSet::<(i64, i64)>::new());
-        }
-        grid.push(row);
-    }
+    let mut grid = create_grid(width, height);
 
-    for (pos, vel) in lines {
-        let (x, y) = pos;
-        let (dx, dy) = vel;
-
-        grid[*y][*x].insert((*dx, *dy));
+    for &((x, y), (dx, dy)) in lines {
+        grid[y][x].insert((dx, dy));
     }
 
     let mut final_grid = vec![vec![0; width]; height];
 
-    for i in 0..height {
-        for j in 0..width {
-            for (dx, dy) in &grid[i][j] {
+    for (i, row) in grid.iter().enumerate() {
+        for (j, cell) in row.iter().enumerate() {
+            for &(dx, dy) in cell {
                 let mut new_pos = (
                     (i as i64 + num_rounds * dy) % height as i64,
                     (j as i64 + num_rounds * dx) % width as i64,
@@ -97,37 +72,25 @@ fn part1(lines: &[((usize, usize), (i64, i64))]) {
         }
     }
 
-    let mut first_quadrant_count = 0;
+    let first_quadrant_count: i32 = final_grid[..height/2]
+        .iter()
+        .map(|row| row[..width/2].iter().sum::<i32>())
+        .sum();
 
-    for i in 0..height / 2 {
-        for j in 0..width / 2 {
-            first_quadrant_count += final_grid[i][j];
-        }
-    }
+    let second_quadrant_count: i32 = final_grid[..height/2]
+        .iter()
+        .map(|row| row[(width/2 + 1)..].iter().sum::<i32>())
+        .sum();
 
-    let mut second_quadrant_count = 0;
+    let third_quadrant_count: i32 = final_grid[(height/2 + 1)..]
+        .iter()
+        .map(|row| row[(width/2 + 1)..].iter().sum::<i32>())
+        .sum();
 
-    for i in 0..height / 2 {
-        for j in (width / 2 + 1)..width {
-            second_quadrant_count += final_grid[i][j];
-        }
-    }
-
-    let mut third_quadrant_count = 0;
-
-    for i in height / 2 + 1..height {
-        for j in width / 2 + 1..width {
-            third_quadrant_count += final_grid[i][j];
-        }
-    }
-
-    let mut fourth_quadrant_count = 0;
-
-    for i in height / 2 + 1..height {
-        for j in 0..width / 2 {
-            fourth_quadrant_count += final_grid[i][j];
-        }
-    }
+    let fourth_quadrant_count: i32 = final_grid[(height/2 + 1)..]
+        .iter()
+        .map(|row| row[..width/2].iter().sum::<i32>())
+        .sum();
 
     println!(
         "{}",
@@ -139,37 +102,25 @@ fn checksum(grid: &[Vec<HashSet<(i64, i64)>>]) -> usize {
     let width = grid[0].len();
     let height = grid.len();
 
-    let mut first_quadrant_count = 0;
+    let first_quadrant_count: usize = grid[..height/2]
+        .iter()
+        .map(|row| row[..width/2].iter().map(|cell| cell.len()).sum::<usize>())
+        .sum();
 
-    for i in 0..height / 2 {
-        for j in 0..width / 2 {
-            first_quadrant_count += grid[i][j].len();
-        }
-    }
+    let second_quadrant_count: usize = grid[..height/2]
+        .iter()
+        .map(|row| row[(width/2 + 1)..].iter().map(|cell| cell.len()).sum::<usize>())
+        .sum();
 
-    let mut second_quadrant_count = 0;
+    let third_quadrant_count: usize = grid[(height/2 + 1)..]
+        .iter()
+        .map(|row| row[(width/2 + 1)..].iter().map(|cell| cell.len()).sum::<usize>())
+        .sum();
 
-    for i in 0..height / 2 {
-        for j in (width / 2 + 1)..width {
-            second_quadrant_count += grid[i][j].len();
-        }
-    }
-
-    let mut third_quadrant_count = 0;
-
-    for i in height / 2 + 1..height {
-        for j in width / 2 + 1..width {
-            third_quadrant_count += grid[i][j].len();
-        }
-    }
-
-    let mut fourth_quadrant_count = 0;
-
-    for i in height / 2 + 1..height {
-        for j in 0..width / 2 {
-            fourth_quadrant_count += grid[i][j].len();
-        }
-    }
+    let fourth_quadrant_count: usize = grid[(height/2 + 1)..]
+        .iter()
+        .map(|row| row[..width/2].iter().map(|cell| cell.len()).sum::<usize>())
+        .sum();
 
     first_quadrant_count * second_quadrant_count * third_quadrant_count * fourth_quadrant_count
 }
@@ -205,45 +156,41 @@ fn create_grid_animation(grids: &[Vec<Vec<HashSet<(i64, i64)>>>], output_path: &
     let width = grids[0][0].len() as u16;
     let height = grids[0].len() as u16;
 
-    let mut image_frames = Vec::new();
+    let image_frames: Vec<Frame> = grids
+        .iter()
+        .map(|grid| {
+            let pixels: Vec<u8> = grid
+                .iter()
+                .flat_map(|row| {
+                    row.iter().flat_map(|cell| {
+                        if cell.is_empty() {
+                            vec![255, 255, 255] // White
+                        } else {
+                            vec![0, 0, 0] // Black
+                        }
+                    })
+                })
+                .collect();
 
-    // Create frames for each grid state
-    for grid in grids {
-        let mut pixels = Vec::new();
-        for row in grid {
-            for cell in row {
-                if cell.is_empty() {
-                    pixels.extend_from_slice(&[255, 255, 255]); // White
-                } else {
-                    pixels.extend_from_slice(&[0, 0, 0]); // Black
-                }
+            Frame {
+                width,
+                height,
+                buffer: Cow::Owned(pixels),
+                delay: 10, // 100ms delay between frames
+                transparent: None,
+                dispose: gif::DisposalMethod::Any,
+                needs_user_input: false,
+                top: 0,
+                left: 0,
+                interlaced: false,
+                palette: None,
             }
-        }
+        })
+        .collect();
 
-        let frame = Frame {
-            width,
-            height,
-            buffer: Cow::Owned(pixels.clone()),
-            delay: 10, // 100ms delay between frames
-            transparent: None,
-            dispose: gif::DisposalMethod::Any,
-            needs_user_input: false,
-            top: 0,
-            left: 0,
-            interlaced: false,
-            palette: None,
-        };
-
-        image_frames.push(frame);
-    }
-
-    // Create and save the GIF
     let mut file = File::create(output_path).expect("Failed to create GIF file");
-    let mut encoder =
-        Encoder::new(&mut file, width, height, &[]).expect("Failed to create encoder");
-    encoder
-        .set_repeat(Repeat::Infinite)
-        .expect("Failed to set repeat");
+    let mut encoder = Encoder::new(&mut file, width, height, &[]).expect("Failed to create encoder");
+    encoder.set_repeat(Repeat::Infinite).expect("Failed to set repeat");
 
     for frame in image_frames {
         encoder.write_frame(&frame).expect("Failed to write frame");
@@ -251,41 +198,25 @@ fn create_grid_animation(grids: &[Vec<Vec<HashSet<(i64, i64)>>>], output_path: &
 }
 
 fn part2(lines: &[((usize, usize), (i64, i64))]) {
-    let mut grid = Vec::new();
-
     let width = 101;
     let height = 103;
 
-    for _i in 0..height {
-        let mut row = Vec::new();
-        for _j in 0..width {
-            row.push(HashSet::<(i64, i64)>::new());
-        }
-        grid.push(row);
-    }
+    let mut grid = create_grid(width, height);
 
-    for (pos, vel) in lines {
-        let (x, y) = pos;
-        let (dx, dy) = vel;
-
-        grid[*y][*x].insert((*dx, *dy));
+    for &((x, y), (dx, dy)) in lines {
+        grid[y][x].insert((dx, dy));
     }
 
     let mut num_steps = 0;
-
-    let mut grids = Vec::new();
-
-    grids.push(grid.clone());
-
     let mut min_safety_factor = usize::MAX;
     let mut iteration_count = 0;
 
     for _ in 0..10000 {
         let mut new_grid = create_grid(width, height);
 
-        for i in 0..height {
-            for j in 0..width {
-                for (dx, dy) in &grid[i][j] {
+        for (i, row) in grid.iter().enumerate() {
+            for (j, cell) in row.iter().enumerate() {
+                for &(dx, dy) in cell {
                     let mut new_pos = (
                         (i as i64 + dy) % height as i64,
                         (j as i64 + dx) % width as i64,
@@ -298,51 +229,20 @@ fn part2(lines: &[((usize, usize), (i64, i64))]) {
                         new_pos.1 += width as i64;
                     }
 
-                    new_grid[new_pos.0 as usize][new_pos.1 as usize].insert((*dx, *dy));
+                    new_grid[new_pos.0 as usize][new_pos.1 as usize].insert((dx, dy));
                 }
             }
         }
 
         grid = new_grid;
-
         num_steps += 1;
 
-        grids.push(grid.clone());
-
-
         let safety_factor = checksum(&grid);
-
         if safety_factor < min_safety_factor {
             min_safety_factor = safety_factor;
             iteration_count = num_steps;
-            // println!("{}", min_safety_factor);
-            // println!("{}", num_steps);
-            // print_grid(&grid);
         }
-
-        // if num_steps == 100 {
-        //     assert_eq!(checksum(&grid), 225521010);
-        // }
-
-        // print!("\x1B[2J\x1B[1;1H");
-
-        // print!("{}[2J", 27 as char);
-
-        // if num_steps > 4000 {
-        //     // print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-        //     println!("{}", num_steps);
-        //     print_grid(&grid);
-        //     println!();
-        // }
-
-        // io::stdout().flush().unwrap();
-
-        // thread::sleep(Duration::from_millis(100));
     }
 
-
     println!("{}", iteration_count);
-    
-
-    // create_grid_animation(&grids, "grid_animation.gif");
 }
