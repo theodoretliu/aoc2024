@@ -1,8 +1,8 @@
 use std::collections::HashSet;
-use std::io::Write;
+
 use std::io::{self, BufRead};
-use std::thread;
-use std::time::Duration;
+
+
 
 fn main() {
     let lines: Vec<((usize, usize), (i64, i64))> = io::stdin()
@@ -41,9 +41,9 @@ fn print_grid(grid: &[Vec<HashSet<(i64, i64)>>]) {
 fn create_grid(width: usize, height: usize) -> Vec<Vec<HashSet<(i64, i64)>>> {
     let mut grid = Vec::new();
 
-    for i in 0..height {
+    for _i in 0..height {
         let mut row = Vec::new();
-        for j in 0..width {
+        for _j in 0..width {
             row.push(HashSet::<(i64, i64)>::new());
         }
         grid.push(row);
@@ -60,9 +60,9 @@ fn part1(lines: &[((usize, usize), (i64, i64))]) {
 
     let num_rounds = 100;
 
-    for i in 0..height {
+    for _i in 0..height {
         let mut row = Vec::new();
-        for j in 0..width {
+        for _j in 0..width {
             row.push(HashSet::<(i64, i64)>::new());
         }
         grid.push(row);
@@ -256,9 +256,9 @@ fn part2(lines: &[((usize, usize), (i64, i64))]) {
     let width = 101;
     let height = 103;
 
-    for i in 0..height {
+    for _i in 0..height {
         let mut row = Vec::new();
-        for j in 0..width {
+        for _j in 0..width {
             row.push(HashSet::<(i64, i64)>::new());
         }
         grid.push(row);
