@@ -2,7 +2,7 @@ RUSTFLAGS ?= -O -C target-cpu=native
 
 day%: day%.rs
 	rustfmt day$*.rs
-	rustc $(RUSTFLAGS) day$*.rs -o day$*
+	rustc day$*.rs -o day$*
 
 day%-final: day% day%.txt
 	./day$* < day$*.txt

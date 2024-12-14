@@ -1,0 +1,2 @@
+rustfmt day14.rs
+rustc day14.rs -o day14
