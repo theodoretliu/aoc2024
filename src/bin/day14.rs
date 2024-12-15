@@ -72,24 +72,24 @@ fn part1(lines: &[((usize, usize), (i64, i64))]) {
         }
     }
 
-    let first_quadrant_count: i32 = final_grid[..height/2]
+    let first_quadrant_count: i32 = final_grid[..height / 2]
         .iter()
-        .map(|row| row[..width/2].iter().sum::<i32>())
+        .map(|row| row[..width / 2].iter().sum::<i32>())
         .sum();
 
-    let second_quadrant_count: i32 = final_grid[..height/2]
+    let second_quadrant_count: i32 = final_grid[..height / 2]
         .iter()
-        .map(|row| row[(width/2 + 1)..].iter().sum::<i32>())
+        .map(|row| row[(width / 2 + 1)..].iter().sum::<i32>())
         .sum();
 
-    let third_quadrant_count: i32 = final_grid[(height/2 + 1)..]
+    let third_quadrant_count: i32 = final_grid[(height / 2 + 1)..]
         .iter()
-        .map(|row| row[(width/2 + 1)..].iter().sum::<i32>())
+        .map(|row| row[(width / 2 + 1)..].iter().sum::<i32>())
         .sum();
 
-    let fourth_quadrant_count: i32 = final_grid[(height/2 + 1)..]
+    let fourth_quadrant_count: i32 = final_grid[(height / 2 + 1)..]
         .iter()
-        .map(|row| row[..width/2].iter().sum::<i32>())
+        .map(|row| row[..width / 2].iter().sum::<i32>())
         .sum();
 
     println!(
@@ -102,24 +102,44 @@ fn checksum(grid: &[Vec<HashSet<(i64, i64)>>]) -> usize {
     let width = grid[0].len();
     let height = grid.len();
 
-    let first_quadrant_count: usize = grid[..height/2]
+    let first_quadrant_count: usize = grid[..height / 2]
         .iter()
-        .map(|row| row[..width/2].iter().map(|cell| cell.len()).sum::<usize>())
+        .map(|row| {
+            row[..width / 2]
+                .iter()
+                .map(|cell| cell.len())
+                .sum::<usize>()
+        })
         .sum();
 
-    let second_quadrant_count: usize = grid[..height/2]
+    let second_quadrant_count: usize = grid[..height / 2]
         .iter()
-        .map(|row| row[(width/2 + 1)..].iter().map(|cell| cell.len()).sum::<usize>())
+        .map(|row| {
+            row[(width / 2 + 1)..]
+                .iter()
+                .map(|cell| cell.len())
+                .sum::<usize>()
+        })
         .sum();
 
-    let third_quadrant_count: usize = grid[(height/2 + 1)..]
+    let third_quadrant_count: usize = grid[(height / 2 + 1)..]
         .iter()
-        .map(|row| row[(width/2 + 1)..].iter().map(|cell| cell.len()).sum::<usize>())
+        .map(|row| {
+            row[(width / 2 + 1)..]
+                .iter()
+                .map(|cell| cell.len())
+                .sum::<usize>()
+        })
         .sum();
 
-    let fourth_quadrant_count: usize = grid[(height/2 + 1)..]
+    let fourth_quadrant_count: usize = grid[(height / 2 + 1)..]
         .iter()
-        .map(|row| row[..width/2].iter().map(|cell| cell.len()).sum::<usize>())
+        .map(|row| {
+            row[..width / 2]
+                .iter()
+                .map(|cell| cell.len())
+                .sum::<usize>()
+        })
         .sum();
 
     first_quadrant_count * second_quadrant_count * third_quadrant_count * fourth_quadrant_count
@@ -189,8 +209,11 @@ fn create_grid_animation(grids: &[Vec<Vec<HashSet<(i64, i64)>>>], output_path: &
         .collect();
 
     let mut file = File::create(output_path).expect("Failed to create GIF file");
-    let mut encoder = Encoder::new(&mut file, width, height, &[]).expect("Failed to create encoder");
-    encoder.set_repeat(Repeat::Infinite).expect("Failed to set repeat");
+    let mut encoder =
+        Encoder::new(&mut file, width, height, &[]).expect("Failed to create encoder");
+    encoder
+        .set_repeat(Repeat::Infinite)
+        .expect("Failed to set repeat");
 
     for frame in image_frames {
         encoder.write_frame(&frame).expect("Failed to write frame");
