@@ -249,7 +249,6 @@ fn part2(grid: &Grid, directions: &[Direction]) {
         // display_grid(&new_grid, robot_pos);
         // validate_grid(&new_grid);
 
-
         // println!();
     }
 
@@ -338,7 +337,7 @@ fn get_all_boxes(
                         (left.0 + dy as usize, (left.1 as i64 + dx + 1) as usize),
                         (right.0 + dy as usize, (right.1 as i64 + dx + 1) as usize),
                     ),
-                    depth+1,
+                    depth + 1,
                     dir,
                     grid,
                 )
@@ -361,7 +360,6 @@ fn get_all_boxes(
                 .filter(|new_box| !boxes.contains(new_box))
                 .collect();
 
-
                 boxes.extend(new_boxes);
             }
         }
@@ -369,7 +367,7 @@ fn get_all_boxes(
             if grid[right.0 + dy as usize][right.1 + dx as usize] == '[' {
                 let new_boxes: Vec<_> = get_all_boxes(
                     ((left.0, left.1 + 2), (right.0, right.1 + 2)),
-                    depth+ 1,
+                    depth + 1,
                     dir,
                     grid,
                 )
@@ -387,7 +385,6 @@ fn get_all_boxes(
     boxes
 }
 
-
 fn validate_grid(grid: &Grid) {
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
@@ -395,7 +392,7 @@ fn validate_grid(grid: &Grid) {
                 continue;
             }
 
-            if grid[i][j] == '.'{ 
+            if grid[i][j] == '.' {
                 continue;
             }
 
